@@ -100,7 +100,7 @@ void DesenhaDormente(double escala){
 	glPopMatrix();
 }
 
-void DesenhaSuportes(double raio, double altura, double propM, double propP){
+void DesenhaSuportes(double raioX, double raioY, double altura, double propM, double propP){
     double t;
     glColor3f(0.0f, 0.0f, 0.0f);
     glLineWidth(3.0);
@@ -111,28 +111,28 @@ void DesenhaSuportes(double raio, double altura, double propM, double propP){
     };
     glBegin(GL_LINE_STRIP);     
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
-        ponto.x =raio*propM*cos(t);
-        ponto.y =raio*propM*sin(t);
+        ponto.x =raioX*propM*cos(t);
+        ponto.y =raioY*propM*sin(t);
         ponto.z =altura*propM * sin(2*t);
 
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
 
-    ponto.x = raio*propM*cos(0);
-    ponto.y =  raio*propM*sin(0);
+    ponto.x = raioX*propM*cos(0);
+    ponto.y =  raioY*propM*sin(0);
     ponto.z = altura*propM * sin(2*0);
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 
     glBegin(GL_LINE_STRIP); 
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
-        ponto.x = raio*propP*cos(t);
-        ponto.y = raio*propP*sin(t);
+        ponto.x = raioX*propP*cos(t);
+        ponto.y = raioY*propP*sin(t);
         ponto.z = altura*propP * sin(2*t);
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
-    ponto.x = raio*propP*cos(0);
-    ponto.y = raio*propP*sin(0);
+    ponto.x = raioX*propP*cos(0);
+    ponto.y = raioY*propP*sin(0);
     ponto.z = altura*propP * sin(2*0);
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
@@ -146,14 +146,15 @@ void DesenhaCarrinho(){
 void DesenhaTrilho(){
     
     float x,y,z,t;
-    double raio = 100;
-    double altura = 25;
+    double raioX = 100;
+    double raioY = 100;
+    double altura = 30;
     double propM = 1.03;
     double propP = 0.97;
     double escala = 0.08;
 
     //desenha curvas entre os dormentes (para dar ideia de suporte)
-    DesenhaSuportes(raio,altura, propM,propP);
+    DesenhaSuportes(raioX, raioY,altura, propM,propP);
     int i =0;
     for (t = 0; t <= 2 * M_PI; t += delta) {
         double angulo;
@@ -163,14 +164,14 @@ void DesenhaTrilho(){
 
         //calcula ponto com a curva parametrica 
         Vector3 ponto = {
-            (double)(raio * cos(t)),
-            (double)(raio * sin(t)),
+            (double)(raioX * cos(t)),
+            (double)(raioY * sin(t)),
             (double)(altura * sin(2 * t))
         };
         //calcula derivada no ponto (tangente do ponto)
         Vector3 derivada = {
-            (double)(raio * (-sin(t))),
-            (double)(raio * cos(t)),
+            (double)(raioX * (-sin(t))),
+            (double)(raioY * cos(t)),
             (double)(2*altura * cos(2 * t))
         };
         // precisamos calcular o angulo entre a tangente e o eixo z
@@ -367,3 +368,4 @@ int main(int argc, char** argv)
 	glutMainLoop();
 
 }
+
