@@ -18,6 +18,7 @@ Tópicos necessários:
 
 
 Ideia inicial:
+
 • Montanha-russa com animação dos carrinhos
 
 • Visão primeira e terceira pessoa
