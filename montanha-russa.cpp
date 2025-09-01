@@ -1,14 +1,57 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <iostream>
-GLfloat angle, fAspect, largura, altura, xcamera, ycamera, zcamera;
-GLfloat xalvo;
-float delta = 0.1;
-int pontos = 2*M_PI/delta;
-int posicao = 0;
 struct Vector3 {
     double x, y, z;
 };
+
+GLfloat angle, fAspect, largura, altura;
+Vector3 posicaoCamera;
+Vector3 posicaoInicial{
+    (GLfloat) 200,
+    (GLfloat) 300,
+    (GLfloat) 300,
+};
+
+Vector3 posicaoAlvo{
+    (GLfloat) 0,
+    (GLfloat) 0,
+    (GLfloat) 0,
+};
+Vector3 vetorV{
+    (GLfloat) 0,
+    (GLfloat) 0,
+    (GLfloat) 1,
+};
+
+GLfloat velocidadeCamera = 5.0f;
+float delta = 0.1;
+int pontos = 2*M_PI/delta;
+int posicao = 0;
+int picos = 2;
+
+Vector3 produtoVetorial(Vector3 u, Vector3 v){
+    Vector3 resultado {
+        (double) u.y*v.z - u.z*v.y,
+        (double) u.z*v.x - u.x*v.z,
+        (double) u.x*v.y - u.y*v.x
+
+    };
+    return resultado;
+
+}
+Vector3 normalizar(Vector3 v) {
+    float norma = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    if (norma > 0.0f) {
+        Vector3 resultado{
+            v.x / norma,
+            v.y / norma,
+            v.z / norma
+        };
+        return resultado;
+    }
+    return v; 
+}
 
 void DesenhaQuadrantes() {
     glLineWidth(3.0);
@@ -43,13 +86,14 @@ void DesenhaQuadrantes() {
         glVertex3i(0,0, 0);
     glEnd();
 }
+
 void DesenhaDormente(double escala){
     glPushMatrix();
     glScaled(escala,escala,escala);
+    glRotated(90,0,0,1);
     glRotated(90,1,0,0);
     glTranslated(-15, -5, -40);
     glColor3f(0.5f, 0.35f, 0.05f); // Cor de madeira
-    //glColor3f(0.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);			// Face superior
 		glNormal3f(0.0, 1.0, 0.0);  	// Normal da face
 		glVertex3f(0.0, 10.0, 0.0);
@@ -57,7 +101,6 @@ void DesenhaDormente(double escala){
 		glVertex3f(30.0, 10.0, 80.0);
 		glVertex3f(30.0, 10.0, 0.0);
 	glEnd();
-    //glColor3f(1.0f, 1.0f, 0.0f);
 	glBegin(GL_QUADS);			// Face inferior
 		glNormal3f(0.0, -1.0, 0.0); 	// Normal da face
 		glVertex3f(0.0, 0.0, 0.0);
@@ -65,7 +108,6 @@ void DesenhaDormente(double escala){
 		glVertex3f(30.0, 0.0, 80.0);
 		glVertex3f(0.0, 0.0, 80.0);
 	glEnd();
-    //glColor3f(0.7f, 0.4f, 1.0f);
 	glBegin(GL_QUADS);			// Face frontal
 		glNormal3f(0.0, 0.0, 1.0); 	// Normal da face
 		glVertex3f(0.0, 0.0, 80.0);
@@ -80,7 +122,6 @@ void DesenhaDormente(double escala){
         glVertex3f(30.0, 10.0, 0.0);
 		glVertex3f(30.0, 0.0, 0.0);
 	glEnd();
-    //glColor3f(0.0f, 1.0f, 0.0f);
 	glBegin(GL_QUADS);			// Face lateral esquerda
 		glNormal3f(-1.0, 0.0, 0.0); 	// Normal da face
 		glVertex3f(0.0, 0.0, 0.0);
@@ -88,8 +129,6 @@ void DesenhaDormente(double escala){
 		glVertex3f(0.0, 10.0, 80.0);
 		glVertex3f(0.0, 10.0, 0.0);
 	glEnd();
-	
-	//glColor3f(0.0f, 1.0f, 0.0f);
 	glBegin(GL_QUADS);			// Face lateral direita
 		glNormal3f(1.0, 0.0, 0.0);	// Normal da face
 		glVertex3f(30.0, 10.0, 80.0);
@@ -113,14 +152,14 @@ void DesenhaSuportes(double raioX, double raioY, double altura, double propM, do
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
         ponto.x =raioX*propM*cos(t);
         ponto.y =raioY*propM*sin(t);
-        ponto.z =altura*propM * sin(2*t);
+        ponto.z =altura*propM * sin(picos*t);
 
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
 
     ponto.x = raioX*propM*cos(0);
     ponto.y =  raioY*propM*sin(0);
-    ponto.z = altura*propM * sin(2*0);
+    ponto.z = altura*propM * sin(0);
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 
@@ -128,95 +167,185 @@ void DesenhaSuportes(double raioX, double raioY, double altura, double propM, do
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
         ponto.x = raioX*propP*cos(t);
         ponto.y = raioY*propP*sin(t);
-        ponto.z = altura*propP * sin(2*t);
+        ponto.z = altura*propP * sin(picos*t);
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
     ponto.x = raioX*propP*cos(0);
     ponto.y = raioY*propP*sin(0);
-    ponto.z = altura*propP * sin(2*0);
+    ponto.z = altura*propP * sin(0);
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 }
+
 void DesenhaCarrinho(){
     glPushMatrix;
         glTranslated(0, 0, 1);
-        glutWireCube(10.0f);
+        glScaled(0.08f,0.08f,0.08f);
+        glColor3f(0.7f, 0.4f, 1.0f);
+	    glBegin(GL_QUADS);			// Face frontal
+            glNormal3f(0.0, 0.0, 1.0); 	// Normal da face
+            glVertex3f(40.0, 40.0, 80.0);
+            glVertex3f(-40.0, 40.0, 80.0);
+            glVertex3f(-40.0, -40.0, 80.0);
+            glVertex3f(40.0, -40.0, 80.0);
+	    glEnd();
+		glColor3f(0.0f, 0.0f, 1.0f);
+	    glBegin(GL_QUADS);			// Face posterior
+            glNormal3f(0.0, 0.0, -1.0);	// Normal da face
+            glVertex3f(40.0, 40.0, 0.0);
+            glVertex3f(40.0, -40.0, 0.0);
+            glVertex3f(-40.0, -40.0, 0.0);
+            glVertex3f(-40.0, 40.0, 0.0);
+        glEnd();
+        glColor3f(1.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);			// Face inferior
+            glNormal3f(0.0, -1.0, 0.0); 	// Normal da face
+            glVertex3f(-40.0, -40.0, 0.0);
+            glVertex3f(40.0, -40.0, 0.0);
+            glVertex3f(40.0, -40.0, 80.0);
+            glVertex3f(-40.0, -40.0, 80.0);
+        glEnd();
+    glColor3f(0.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);			// Face lateral esquerda
+            glNormal3f(-1.0, 0.0, 0.0); 	// Normal da face
+            glVertex3f(-40.0, 40.0, 80.0);
+            glVertex3f(-40.0, 40.0, 0.0);
+            glVertex3f(-40.0, -40.0, 0.0);
+            glVertex3f(-40.0, -40.0, 80.0);
+        glEnd();
+        
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);			// Face lateral direita
+            glNormal3f(1.0, 0.0, 0.0);	// Normal da face
+            glVertex3f(40.0, 40.0, 80.0);
+            glVertex3f(40.0, -40.0, 80.0);
+            glVertex3f(40.0, -40.0, 0.0);
+            glVertex3f(40.0, 40.0, 0.0);
+        glEnd();
+        glColor3f(0.0f, 1.0f, 1.0f);
+        glBegin(GL_QUADS);			// Face superior
+            glNormal3f(0.0, 1.0, 0.0);  	// Normal da face
+            glVertex3f(-40.0, 40.0, 0.0);
+            glVertex3f(-40.0, 40.0, 80.0);
+            glVertex3f(40.0, 40.0, 80.0);
+            glVertex3f(40.0, 40.0, 0.0);
+        glEnd();
     glPopMatrix;
 }
+
 void DesenhaTrilho(){
     
-    float x,y,z,t;
+    double t, anguloX, anguloY,anguloZ;
     double raioX = 100;
     double raioY = 100;
     double altura = 30;
     double propM = 1.03;
     double propP = 0.97;
     double escala = 0.08;
-
     //desenha curvas entre os dormentes (para dar ideia de suporte)
     DesenhaSuportes(raioX, raioY,altura, propM,propP);
-    int i =0;
-    for (t = 0; t <= 2 * M_PI; t += delta) {
-        double angulo;
-        //rotacao no eixo z usando o angulo t (transformando para radianos)
-        // tirar o angulo 90 deixa cada dormente apontando para fora
-        double anguloZ = t * 180.0 / M_PI - 90; 
 
-        //calcula ponto com a curva parametrica 
+    int i =0;
+    
+    double intervaloX=0;
+    double intervaloY=0;
+
+    //calcula o x do ultimo pico (ultimo da origem ate o raio X)
+    for(t=raioX;t>0;t-=0.0001){
+        double angulo = abs(acos(t/raioX));
+        double diferenca = abs((altura*sin(picos*angulo)) -altura);
+        if(diferenca <0.1){
+            intervaloX = t;
+            break;
+        }
+    }
+
+    //calcula o y do ultimo pico (ultimo da origem ate o raio Y)
+    for(t=raioY;t>0;t-=0.0001){
+        double angulo = abs(asin(t/raioX));
+        double diferenca = abs(altura*sin(picos*angulo) -altura);
+        if(diferenca <0.1){
+            intervaloY = t;
+            break;
+        }
+    }
+
+    for (t = 0; t <= 2 * M_PI; t += delta) {
+        // calcula ponto com a curva parametrica 
         Vector3 ponto = {
             (double)(raioX * cos(t)),
             (double)(raioY * sin(t)),
-            (double)(altura * sin(2 * t))
+            (double)(altura * sin(picos * t))
         };
-        //calcula derivada no ponto (tangente do ponto)
+        // calcula derivada no ponto (tangente do ponto)
         Vector3 derivada = {
             (double)(raioX * (-sin(t))),
             (double)(raioY * cos(t)),
-            (double)(2*altura * cos(2 * t))
+            (double)(picos* altura * cos(picos * t))
         };
-        // precisamos calcular o angulo entre a tangente e o eixo z
-        // usando a formula: cos(a) = (u.v)/(|u|.|v|)
-        // sendo u o versor em z: u =(0,0,1) e v = derivada
-        // entao, calculando o modulo da derivada
-        float moduloDerivada = sqrtf(derivada.x*derivada.x + 
-                                    derivada.y*derivada.y + 
-                                    derivada.z*derivada.z);
+        // angulo entre a derivada projetada no eixo zy e versor do eixo y
+        anguloX = acos(derivada.y/ sqrtf(derivada.y*derivada.y + 
+                                    derivada.z*derivada.z)) * 180/M_PI;
 
-        // caso o y eh menor que 0, o angulo que a formula retorna estara no sentido horario, 
-        // entao eh preciso espelhar o ponto em torno de z
-        if (derivada.y < 0){
-            derivada.y = -derivada.y;
-            moduloDerivada = sqrtf(derivada.x*derivada.x + 
-                                    derivada.y*derivada.y + 
-                                    derivada.z*derivada.z);
+        // angulo entre a derivada projetada no eixo zx e versor do eixo x                           
+        anguloY = acos(derivada.x / sqrtf(derivada.x*derivada.x + 
+                                    derivada.z*derivada.z)) *180/M_PI; 
+        
+        // se a derivada em z eh negativa, o angulo calculado estara no sentido horario
+        // pois eh o menor angulo entre os dois vetores
+        // entao, como o sentido positivo eh anti-horario, temos que deixar negativo                         
+        if((derivada.x <0 && derivada.z <0) || (derivada.x >0 && derivada.z <0)){
+            anguloY = -anguloY;
+        }
+        if((derivada.y <0 && derivada.z <0) || (derivada.y >0 && derivada.z <0)){
+            anguloX= -anguloX;
+        }
+
+        //se o ponto eh depois do ultimo pico em x, nao rotacionar em x
+        if(abs(ponto.y)>intervaloY){
+            anguloX = 0;
+        }else{
+            // correcao caso o angulo de rotacao seja maior que 90
+            // para nao ficar de cabeca para baixo
+            if(abs(anguloX) >90){
+                anguloX = anguloX-180;
+            }else if (anguloX <(-90)){
+                anguloX = anguloX +180;
+            }
+        }
+        //se o ponto eh depois do ultimo pico em y, nao rotacionar em y
+        if(abs(ponto.x)>intervaloX){
+            anguloY = 0;
+        }else{
+            // correcao novamente
+            if(anguloY >90){
+                anguloY = anguloY +180;
+            }else if (anguloY <(-90)){
+                anguloY = anguloY-180;
+            }
+            // em y, o angulo calculado esta no sentido horario
+            anguloY=-anguloY;
         }
         
-        // calculando o ponto pela formula e passando para grau
-        angulo = acos(derivada.z / moduloDerivada) *180/M_PI;
-
-        // precisamos que o angulo para rotacao seja para o plano xy,
-        // porem, o angulo em z eh complementar, e, dependendo do quadrante, 
-        // subtrai de 90 ou diminui 90
-        if((ponto.y> 0 && derivada.z <0) || (ponto.x>0 && derivada.z>0)){
-            angulo = 90 -angulo;
-        }else{
-            angulo = angulo - 90;
-        }
+        // rotacao no eixo z usando o angulo t (transformando para radianos)
+        anguloZ = t * 180.0 / M_PI ; 
         
         glPushMatrix();
             glTranslated(ponto.x, ponto.y, ponto.z);
-            glRotated(angulo,1,0,0);
-            glRotated(angulo,0,1,0);
+            glRotated(anguloX,1,0,0);
+            glRotated(anguloY,0,1,0);
             glRotated(anguloZ,0,0,1);
             DesenhaDormente(escala);
         glPopMatrix();
+        
 
-        //desenha carrinho de acordo com o tempo (animacao)
+        // desenha carrinho de acordo com o tempo (animacao)
+        // talvez colocar mais pontos para deixar a animacao mais fluida
         if(i == posicao){
             glPushMatrix();
                 glTranslated(ponto.x, ponto.y, ponto.z);
-                glRotated(angulo,1,0,0);
-                glRotated(angulo,0,1,0);
+                glRotated(anguloX,1,0,0);
+                glRotated(anguloY,0,1,0);
                 glRotated(anguloZ,0,0,1);
                 DesenhaCarrinho();
             glPopMatrix();
@@ -225,8 +354,6 @@ void DesenhaTrilho(){
     }
 
 }
-
-
 
 void Timer(int value) { 
     if(posicao<pontos){
@@ -237,8 +364,6 @@ void Timer(int value) {
     glutPostRedisplay();
     glutTimerFunc(500, Timer, value+1);
 }
-
-
 
 // inicializa parametros
 void Inicializa(void)
@@ -266,16 +391,17 @@ void EspecificaParametrosVisualizacao(void)
 	glLoadIdentity();
 
 	// Especifica posição do observador e do alvo
-	gluLookAt(xcamera, ycamera, zcamera,  // posição da câmera
-              xalvo, 0, 0,          // posição do alvo
-              0, 0, 1);         // vetor UP da câmera
+	gluLookAt(posicaoCamera.x, posicaoCamera.y, posicaoCamera.z,  // posição da câmera
+              posicaoAlvo.x, posicaoAlvo.y, posicaoAlvo.z,          // posição do alvo
+              vetorV.x, vetorV.y, vetorV.z);         // vetor UP da câmera*/
 }
 
 void Desenha(void)
-{   int i;
+{
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     EspecificaParametrosVisualizacao();
+    
     // desenha os eixos x, y, z para melhor localizacao
     DesenhaQuadrantes();
 
@@ -303,38 +429,72 @@ void AlteraTamanhoJanela(GLint largura, GLint altura)
 // Função callback chamada para gerenciar teclas especiais
 void TeclasEspeciais(int key, int x, int y)
 {
-	if (key == GLUT_KEY_UP) {
-		ycamera += 10;  
-	}
-	if (key == GLUT_KEY_DOWN) {
-		ycamera -= 10;  
-	}
-	if (key == GLUT_KEY_RIGHT) {
-		xcamera += 10;
-	}
-	if (key == GLUT_KEY_LEFT) {
-		xcamera -= 10;
-	}
+    Vector3 direcaoFrente = {
+        posicaoAlvo.x - posicaoCamera.x,
+        posicaoAlvo.y - posicaoCamera.y,
+        posicaoAlvo.z - posicaoCamera.z
+    };
+    direcaoFrente = normalizar(direcaoFrente);
+
+    Vector3 direcaoLado = normalizar(produtoVetorial(direcaoFrente, vetorV));
+
+	if (key == GLUT_KEY_UP) { 
+        posicaoCamera.z += 10;
+    }
+    if (key == GLUT_KEY_DOWN) { 
+        posicaoCamera.z -= 10;
+    }
+    if (key == GLUT_KEY_RIGHT) {
+        posicaoCamera.x += velocidadeCamera * direcaoLado.x;
+        posicaoCamera.y += velocidadeCamera * direcaoLado.y;
+        posicaoCamera.z += velocidadeCamera * direcaoLado.z;
+    }
+    if (key == GLUT_KEY_LEFT) { 
+        posicaoCamera.x -= velocidadeCamera * direcaoLado.x;
+        posicaoCamera.y -= velocidadeCamera * direcaoLado.y;
+        posicaoCamera.z -= velocidadeCamera * direcaoLado.z;
+    }
 	
     EspecificaParametrosVisualizacao();
 	glutPostRedisplay();
 }
 // Função callback chamada para gerenciar teclado
 void GerenciaTeclado(unsigned char key, int x, int y) {
+    Vector3 direcaoFrente = {
+        posicaoAlvo.x - posicaoCamera.x,
+        posicaoAlvo.y - posicaoCamera.y,
+        posicaoAlvo.z - posicaoCamera.z
+    };
+    direcaoFrente = normalizar(direcaoFrente);
+
 	switch (key) {
 		case ' ': // restaura posição inicial da camera
-			ycamera = 200;
-            xcamera = 300;
-            zcamera = 300;
-            xalvo = 0;
+			posicaoCamera.x = posicaoInicial.x;
+            posicaoCamera.y = posicaoInicial.y;
+            posicaoCamera.z = posicaoInicial.z;
 			break;
-			// movimentacao da camera em z
 		case 'w':
-		    zcamera -= 50;
+		    posicaoCamera.x += velocidadeCamera * direcaoFrente.x;
+            posicaoCamera.y += velocidadeCamera * direcaoFrente.y;
+            posicaoCamera.z += velocidadeCamera * direcaoFrente.z;
             break;
         case 's':
-	        zcamera += 50;
+	        posicaoCamera.x -= velocidadeCamera * direcaoFrente.x;
+            posicaoCamera.y -= velocidadeCamera * direcaoFrente.y;
+            posicaoCamera.z -= velocidadeCamera * direcaoFrente.z;
 	        break;
+        case '1':
+            picos = 1;
+            break;
+        case '2':
+            picos = 2;
+            break;
+        case '3':
+            picos = 3;
+            break;
+        case '4':
+            picos = 4;
+            break;
 	}
     EspecificaParametrosVisualizacao();
 	glutPostRedisplay();
@@ -350,12 +510,11 @@ int main(int argc, char** argv)
     glutInitWindowPosition(700,100);
     largura = 600;
     altura = 500;
+    posicaoCamera.x = posicaoInicial.x;
+    posicaoCamera.y = posicaoInicial.y;
+    posicaoCamera.z = posicaoInicial.z;
 	glutInitWindowSize(largura,altura);
 	fAspect = (GLfloat)largura / (GLfloat)altura;
-    ycamera = 200;
-    xcamera = 300;
-    zcamera = 300;
-    xalvo = 0;
 	angle = 45;
     glutCreateWindow("Projeto Montanha-Russa"); 
     AlteraTamanhoJanela(largura,altura);
@@ -368,4 +527,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 
 }
-
