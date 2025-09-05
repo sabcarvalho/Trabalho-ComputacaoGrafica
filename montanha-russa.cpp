@@ -152,14 +152,14 @@ void DesenhaSuportes(double raioX, double raioY, double altura, double propM, do
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
         ponto.x =raioX*propM*cos(t);
         ponto.y =raioY*propM*sin(t);
-        ponto.z =altura*propM * sin(picos*t);
+        ponto.z =altura*propM * sin(picos*t) + altura;
 
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
 
     ponto.x = raioX*propM*cos(0);
     ponto.y =  raioY*propM*sin(0);
-    ponto.z = altura*propM * sin(0);
+    ponto.z = altura*propM * sin(0) + altura;
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 
@@ -167,12 +167,12 @@ void DesenhaSuportes(double raioX, double raioY, double altura, double propM, do
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
         ponto.x = raioX*propP*cos(t);
         ponto.y = raioY*propP*sin(t);
-        ponto.z = altura*propP * sin(picos*t);
+        ponto.z = altura*propP * sin(picos*t) + altura;
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
     ponto.x = raioX*propP*cos(0);
     ponto.y = raioY*propP*sin(0);
-    ponto.z = altura*propP * sin(0);
+    ponto.z = altura*propP * sin(0) + altura;
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 }
@@ -237,11 +237,14 @@ void DesenhaTrilho(){
     
     double t, anguloX, anguloY,anguloZ;
     double raioX = 100;
-    double raioY = 100;
+    double raioY = 150;
     double altura = 30;
     double propM = 1.03;
     double propP = 0.97;
     double escala = 0.08;
+    if(picos==1){
+        altura = 0;
+    }
     //desenha curvas entre os dormentes (para dar ideia de suporte)
     DesenhaSuportes(raioX, raioY,altura, propM,propP);
 
@@ -251,9 +254,15 @@ void DesenhaTrilho(){
     double intervaloY=0;
 
     //calcula o x do ultimo pico (ultimo da origem ate o raio X)
-    for(t=raioX;t>0;t-=0.0001){
-        double angulo = abs(acos(t/raioX));
-        double diferenca = abs((altura*sin(picos*angulo)) -altura);
+    for(t=raioX;t>0;t-=delta){
+        double angulo = acos(t/raioX);
+        double diferenca = altura - abs((altura*sin(picos*angulo)));
+        if(diferenca <0.1){
+            intervaloX = t;
+            break;
+        }
+        angulo = abs(acos(t/raioX));
+        diferenca = altura -(altura*abs(sin(picos*angulo)));
         if(diferenca <0.1){
             intervaloX = t;
             break;
@@ -261,9 +270,15 @@ void DesenhaTrilho(){
     }
 
     //calcula o y do ultimo pico (ultimo da origem ate o raio Y)
-    for(t=raioY;t>0;t-=0.0001){
-        double angulo = abs(asin(t/raioX));
-        double diferenca = abs(altura*sin(picos*angulo) -altura);
+    for(t=raioY;t>0;t-=delta){
+        double angulo = asin(t/raioX);
+        double diferenca = abs(altura - altura*sin(picos*angulo));
+        if(diferenca <0.1){
+            intervaloY = t;
+            break;
+        }
+        angulo = abs(asin(t/raioX));
+        diferenca = altura - abs(altura*sin(picos*angulo));
         if(diferenca <0.1){
             intervaloY = t;
             break;
@@ -275,60 +290,64 @@ void DesenhaTrilho(){
         Vector3 ponto = {
             (double)(raioX * cos(t)),
             (double)(raioY * sin(t)),
-            (double)(altura * sin(picos * t))
+            (double)(altura * sin(picos * t) + altura) //deixa em cima do plano xy
         };
-        // calcula derivada no ponto (tangente do ponto)
-        Vector3 derivada = {
-            (double)(raioX * (-sin(t))),
-            (double)(raioY * cos(t)),
-            (double)(picos* altura * cos(picos * t))
-        };
-        // angulo entre a derivada projetada no eixo zy e versor do eixo y
-        anguloX = acos(derivada.y/ sqrtf(derivada.y*derivada.y + 
-                                    derivada.z*derivada.z)) * 180/M_PI;
+        if(picos>1){
+            // calcula derivada no ponto (tangente do ponto)
+            Vector3 derivada = {
+                (double)(raioX * (-sin(t))),
+                (double)(raioY * cos(t)),
+                (double)(picos* altura * cos(picos * t))
+            };
+            derivada = normalizar(derivada);
+            // angulo entre a derivada projetada no eixo zy e versor do eixo y
+            anguloX = acos(derivada.y/ sqrtf(derivada.y*derivada.y + 
+                                        derivada.z*derivada.z)) * 180/M_PI;
 
-        // angulo entre a derivada projetada no eixo zx e versor do eixo x                           
-        anguloY = acos(derivada.x / sqrtf(derivada.x*derivada.x + 
-                                    derivada.z*derivada.z)) *180/M_PI; 
+            // angulo entre a derivada projetada no eixo zx e versor do eixo x                           
+            anguloY = acos(derivada.x / sqrtf(derivada.x*derivada.x + 
+                                        derivada.z*derivada.z)) *180/M_PI; 
+            
+            // se a derivada em z eh negativa, o angulo calculado estara no sentido horario
+            // pois eh o menor angulo entre os dois vetores
+            // entao, como o sentido positivo eh anti-horario, temos que deixar negativo                         
+            if(derivada.z <0){
+                anguloY = -anguloY;
+                anguloX = -anguloX;
+            }
+
+            //se o ponto eh depois do ultimo pico em x, nao rotacionar em x
+            if(abs(ponto.y)>intervaloY){
+                anguloX = 0;
+            }else{
+                // correcao caso o angulo de rotacao seja maior que 90
+                // para nao ficar de cabeca para baixo
+                if(anguloX >90){
+                    anguloX = anguloX - 180;
+                }else if (anguloX <(-90)){
+                    anguloX = anguloX +180;
+                }
+            }
+            //se o ponto eh depois do ultimo pico em y, nao rotacionar em y
+            if(abs(ponto.x)>intervaloX){
+                anguloY = 0;
+            }else{
+                // correcao novamente
+                if(anguloY >90){
+                    anguloY = anguloY +180;
+                }else if (anguloY <(-90)){
+                    anguloY = anguloY-180;
+                }
+                // em y, o angulo calculado esta no sentido horario
+                anguloY=-anguloY;
+            }
+        }
         
-        // se a derivada em z eh negativa, o angulo calculado estara no sentido horario
-        // pois eh o menor angulo entre os dois vetores
-        // entao, como o sentido positivo eh anti-horario, temos que deixar negativo                         
-        if((derivada.x <0 && derivada.z <0) || (derivada.x >0 && derivada.z <0)){
-            anguloY = -anguloY;
-        }
-        if((derivada.y <0 && derivada.z <0) || (derivada.y >0 && derivada.z <0)){
-            anguloX= -anguloX;
-        }
-
-        //se o ponto eh depois do ultimo pico em x, nao rotacionar em x
-        if(abs(ponto.y)>intervaloY){
-            anguloX = 0;
-        }else{
-            // correcao caso o angulo de rotacao seja maior que 90
-            // para nao ficar de cabeca para baixo
-            if(abs(anguloX) >90){
-                anguloX = anguloX-180;
-            }else if (anguloX <(-90)){
-                anguloX = anguloX +180;
-            }
-        }
-        //se o ponto eh depois do ultimo pico em y, nao rotacionar em y
-        if(abs(ponto.x)>intervaloX){
-            anguloY = 0;
-        }else{
-            // correcao novamente
-            if(anguloY >90){
-                anguloY = anguloY +180;
-            }else if (anguloY <(-90)){
-                anguloY = anguloY-180;
-            }
-            // em y, o angulo calculado esta no sentido horario
-            anguloY=-anguloY;
-        }
         
         // rotacao no eixo z usando o angulo t (transformando para radianos)
         anguloZ = t * 180.0 / M_PI ; 
+        
+        
         
         glPushMatrix();
             glTranslated(ponto.x, ponto.y, ponto.z);
