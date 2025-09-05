@@ -41,6 +41,7 @@ Vector3 produtoVetorial(Vector3 u, Vector3 v){
     return resultado;
 
 }
+
 Vector3 normalizar(Vector3 v) {
     float norma = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     if (norma > 0.0f) {
@@ -348,6 +349,47 @@ void DesenhaTrilho(){
         // rotacao no eixo z usando o angulo t (transformando para radianos)
         anguloZ = t * 180.0 / M_PI ; 
         
+        // Desenhar suportes a cada 5 dormentes
+        if (i % 5 == 0) {
+            // Recalcular a derivada para achar o vetor lateral
+            Vector3 derivada = normalizar({
+                (double)(raioX * (-sin(t))),
+                (double)(raioY * cos(t)),
+                (double)(picos* altura * cos(picos * t))
+            });
+
+            Vector3 worldUp = {0, 0, 1};
+            
+            // Calcular o vetor lateral usando o produto vetorial. 
+            // Isso dá um vetor perpendicular tanto à direção da 
+            // pista quanto ao vetor up do mundo.
+            Vector3 vetorLado = normalizar(produtoVetorial(derivada, worldUp));
+            
+            // A dimensão da dormente é 80, vamos usar metade disso 
+            // e um fudge factor para cada lado
+            double halfWidth = 40.0 * escala * 1.1;
+
+            Vector3 pontoFinal1 = {
+                ponto.x + vetorLado.x * halfWidth,
+                ponto.y + vetorLado.y * halfWidth,
+                ponto.z + vetorLado.z * halfWidth
+            };
+             Vector3 pontoFinal2 = {
+                ponto.x - vetorLado.x * halfWidth,
+                ponto.y - vetorLado.y * halfWidth,
+                ponto.z - vetorLado.z * halfWidth
+            };
+            
+            glColor3f(0.5f, 0.35f, 0.05f); 
+            glLineWidth(2.0);
+            glBegin(GL_LINES);
+                glVertex3f(pontoFinal1.x, pontoFinal1.y, pontoFinal1.z);
+                glVertex3f(pontoFinal1.x, pontoFinal1.y, 0.0f);
+
+                glVertex3f(pontoFinal2.x, pontoFinal2.y, pontoFinal2.z);
+                glVertex3f(pontoFinal2.x, pontoFinal2.y, 0.0f);
+            glEnd();
+        }
         
         
         glPushMatrix();
