@@ -29,6 +29,7 @@ float delta = 0.1;
 int pontos = 2*M_PI/delta;
 int posicao = 0;
 int picos = 2;
+float offsetxy = 5.0; 
 
 Vector3 produtoVetorial(Vector3 u, Vector3 v){
     Vector3 resultado {
@@ -152,14 +153,14 @@ void DesenhaSuportes(double raioX, double raioY, double altura, double propM, do
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
         ponto.x =raioX*propM*cos(t);
         ponto.y =raioY*propM*sin(t);
-        ponto.z =altura*propM * sin(picos*t) + altura;
+        ponto.z =altura*propM * sin(picos*t) + altura + offsetxy;
 
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
 
     ponto.x = raioX*propM*cos(0);
     ponto.y =  raioY*propM*sin(0);
-    ponto.z = altura*propM * sin(0) + altura;
+    ponto.z = altura*propM * sin(0) + altura + offsetxy;
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 
@@ -167,12 +168,12 @@ void DesenhaSuportes(double raioX, double raioY, double altura, double propM, do
     for (t = 0; t <= 2 * M_PI; t += 0.1) { 
         ponto.x = raioX*propP*cos(t);
         ponto.y = raioY*propP*sin(t);
-        ponto.z = altura*propP * sin(picos*t) + altura;
+        ponto.z = altura*propP * sin(picos*t) + altura + offsetxy;
         glVertex3f(ponto.x, ponto.y, ponto.z);
     }
     ponto.x = raioX*propP*cos(0);
     ponto.y = raioY*propP*sin(0);
-    ponto.z = altura*propP * sin(0) + altura;
+    ponto.z = altura*propP * sin(0) + altura + offsetxy;
     glVertex3f(ponto.x, ponto.y, ponto.z);
     glEnd();
 }
@@ -290,7 +291,7 @@ void DesenhaTrilho(){
         Vector3 ponto = {
             (double)(raioX * cos(t)),
             (double)(raioY * sin(t)),
-            (double)(altura * sin(picos * t) + altura) //deixa em cima do plano xy
+            (double)(altura * sin(picos * t) + altura + offsetxy) //deixa em cima do plano xy
         };
         if(picos>1){
             // calcula derivada no ponto (tangente do ponto)
@@ -374,6 +375,17 @@ void DesenhaTrilho(){
 
 }
 
+void DesenhaPlano() {
+    glColor3f(0.8f, 0.8f, 0.8f);
+    glBegin(GL_QUADS);
+        glNormal3f(0.0, 0.0, 1.0); // Normal apontando para cima em Z
+        glVertex3f(-500.0f, -500.0f, 0.0f);
+        glVertex3f( 500.0f, -500.0f, 0.0f);
+        glVertex3f( 500.0f,  500.0f, 0.0f);
+        glVertex3f(-500.0f,  500.0f, 0.0f);
+    glEnd();
+}
+
 void Timer(int value) { 
     if(posicao<pontos){
         posicao++;
@@ -423,6 +435,9 @@ void Desenha(void)
     
     // desenha os eixos x, y, z para melhor localizacao
     DesenhaQuadrantes();
+
+    // desenha o plano xy
+    DesenhaPlano();
 
     // desenha o trilho
     DesenhaTrilho();
