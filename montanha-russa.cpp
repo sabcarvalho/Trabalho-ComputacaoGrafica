@@ -302,6 +302,126 @@ void DesenhaSuportes(){
 
 }
 
+void DesenhaCilindroSolido(double raio, double altura, int fatias, int pilhas) {
+    GLUquadric* quadric = gluNewQuadric();
+    if (quadric) {
+        // corpo do cilindro
+        gluCylinder(quadric, raio, raio, altura, fatias, pilhas);
+        
+        // tampa de cima 
+        glPushMatrix();
+            glTranslated(0, 0, altura);
+            gluDisk(quadric, 0, raio, fatias, 1);
+        glPopMatrix();
+        
+        // tampa de baixo
+        glPushMatrix();
+            glRotatef(180.0, 1.0, 0.0, 0.0);
+            gluDisk(quadric, 0, raio, fatias, 1);
+        glPopMatrix();
+        
+        gluDeleteQuadric(quadric);
+    }
+}
+
+void DesenhaCarrinhoComPassageiro() {
+    glPushMatrix();
+
+        glTranslated(0, 0, 5);
+        // escalar o carrinho para ficar mais facil de ver o boneco
+        glScaled(0.08f, 0.08f, 0.08f); 
+
+        glColor3f(0.7f, 0.7f, 0.7f);
+
+        glBegin(GL_QUADS);
+            // face do chao
+            glNormal3f(0.0, 0.0, -1.0);
+            glVertex3f(-40.0, -40.0, -40.0);
+            glVertex3f(40.0, -40.0, -40.0);
+            glVertex3f(40.0, 40.0, -40.0);
+            glVertex3f(-40.0, 40.0, -40.0);
+
+            // face da frente
+            glNormal3f(0.0, 1.0, 0.0);
+            glVertex3f(-40.0, 40.0, -40.0);
+            glVertex3f(40.0, 40.0, -40.0);
+            glVertex3f(40.0, 40.0, 10.0);
+            glVertex3f(-40.0, 40.0, 10.0);
+
+            // face de tras
+            glNormal3f(0.0, -1.0, 0.0);
+            glVertex3f(-40.0, -40.0, 10.0);
+            glVertex3f(40.0, -40.0, 10.0);
+            glVertex3f(40.0, -40.0, -40.0);
+            glVertex3f(-40.0, -40.0, -40.0);
+            
+            // face direita
+            glNormal3f(1.0, 0.0, 0.0);
+            glVertex3f(40.0, -40.0, 10.0);
+            glVertex3f(40.0, 40.0, 10.0);
+            glVertex3f(40.0, 40.0, -40.0);
+            glVertex3f(40.0, -40.0, -40.0);
+
+            // face esquerda
+            glNormal3f(-1.0, 0.0, 0.0);
+            glVertex3f(-40.0, -40.0, -40.0);
+            glVertex3f(-40.0, 40.0, -40.0);
+            glVertex3f(-40.0, 40.0, 10.0);
+            glVertex3f(-40.0, -40.0, 10.0);
+        glEnd();
+
+        // rodas
+        glColor3f(0.2f, 0.2f, 0.2f); // cinza escuro
+        float wheelRadius = 15.0f;
+        float wheelWidth = 10.0f;
+
+        // frente-direita
+        glPushMatrix();
+            glTranslated(40.0, 30.0, -40.0);
+            glRotatef(90.0, 0.0, 1.0, 0.0);
+            DesenhaCilindroSolido(wheelRadius, wheelWidth, 10, 10);
+        glPopMatrix();
+
+        // frente-esquerda
+        glPushMatrix();
+            glTranslated(-40.0, 30.0, -40.0);
+            glRotatef(-90.0, 0.0, 1.0, 0.0);
+            DesenhaCilindroSolido(wheelRadius, wheelWidth, 10, 10);
+        glPopMatrix();
+
+        // tras-direita
+        glPushMatrix();
+            glTranslated(40.0, -30.0, -40.0);
+            glRotatef(90.0, 0.0, 1.0, 0.0);
+            DesenhaCilindroSolido(wheelRadius, wheelWidth, 10, 10);
+        glPopMatrix();
+        
+        // tras-esquerda
+        glPushMatrix();
+            glTranslated(-40.0, -30.0, -40.0);
+            glRotatef(-90.0, 0.0, 1.0, 0.0);
+            DesenhaCilindroSolido(wheelRadius, wheelWidth, 10, 10);
+        glPopMatrix();
+
+        // passageiro
+        glPushMatrix();
+            // posicionar dentro do carrinho
+            glTranslated(0.0, -10.0, -30.0);
+
+            // corpo (cone)
+            glColor3f(0.0f, 0.5f, 1.0f); 
+            glutSolidCone(20.0, 60.0, 15, 15);
+
+            // cabeça (esfera)
+            glTranslated(0.0, 0.0, 60.0);
+            glColor3f(1.0f, 0.8f, 0.6f);
+            glutSolidSphere(15.0, 15, 15);
+        glPopMatrix();
+
+    glPopMatrix();
+}
+
+
 void DesenhaCarrinho(){
     glPushMatrix();
         glTranslated(0, 0, 1);
@@ -546,7 +666,7 @@ void DesenhaTrilho(){
                     glTranslated(ponto.x, ponto.y, ponto.z);
                     glRotated(anguloZ,0,0,1);
                     glRotated(anguloX,1,0,0);
-                    DesenhaCarrinho();
+                    DesenhaCarrinhoComPassageiro();
                 glPopMatrix();
             }
         }
