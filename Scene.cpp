@@ -5,6 +5,397 @@
 #include <math.h>
 #include <vector>
 
+void DesenhaLua() {
+    glPushMatrix();
+    // Dar propriedades emissivas pra lua brilhar e nao ser afetada por outras luzes
+    GLfloat mat_emission[] = { 1.0, 1.0, 0.8, 1.0 };
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+    glColor3f(1.0f, 1.0f, 0.8f); // Uma cor bonitinha meio azul
+
+    // Deixar a lua bem longe no ceu e bem grande
+    glTranslatef(200, 300, 300);
+    glutSolidSphere(30, 20, 20);
+
+    // Resetar a propriedade emissiva pra outros objetos nao brilharem
+    mat_emission[0] = 0.0; mat_emission[1] = 0.0; mat_emission[2] = 0.0;
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+    glPopMatrix();
+}
+
+void DesenhaPosteDeLuz(float x, float y, float z, GLenum lightID) {
+    glPushMatrix();
+    // Primeiro, move para a posicao da base do poste no mundo
+    glTranslatef(x, y, z);
+
+    // Colocar a luz a 15 unidades da origem
+    GLfloat light_pos[] = { 0.0f, 0.0f, 15.0f, 1.0f };
+
+    glLightfv(lightID, GL_POSITION, light_pos);
+
+    // Desenhar o poste
+    glColor3f(0.2f, 0.2f, 0.2f); // Cinza escuro
+    DesenhaCilindroSolido(0.5, 25.0, 8, 1);
+
+    // Desenhar a lampada em cima do poste
+    glTranslatef(0, 0, 25.0f);
+    GLfloat mat_emission[] = { 1.0, 1.0, 0.0, 1.0 };
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+    glColor3f(1.0f, 1.0f, 0.0f); // Yellow
+    glutSolidSphere(2.0, 10, 10);
+
+    // Resetar emissao
+    mat_emission[0] = 0.0; mat_emission[1] = 0.0;
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
+
+    glPopMatrix();
+}
+
+
+void DesenhaTendaCone(float radius, float height, Color color1, Color color2) {
+    // Salvar os atributos de iluminacao atuais
+    glPushAttrib(GL_LIGHTING_BIT);
+
+    int segments = 24;
+    float angle_step = 2.0f * M_PI / segments;
+
+    // Deixar o topo da tenda brilhoso, para parecer que a luz bate nele
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 50.0 };
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glPushMatrix();
+    glBegin(GL_TRIANGLES);
+    for (int i = 0; i < segments; ++i) {
+        if (i % 2 == 0) { glColor3f(color1.r, color1.g, color1.b); }
+        else { glColor3f(color2.r, color2.g, color2.b); }
+        Vector3 v1 = { radius * cos(i * angle_step), radius * sin(i * angle_step), 0 };
+        Vector3 v2 = { radius * cos((i + 1) * angle_step), radius * sin((i + 1) * angle_step), 0 };
+        Vector3 v3 = { 0, 0, height };
+        Vector3 edge1 = { v2.x - v1.x, v2.y - v1.y, v2.z - v1.z };
+        Vector3 edge2 = { v3.x - v1.x, v3.y - v1.y, v3.z - v1.z };
+        Vector3 normal = normalizar(produtoVetorial(edge1, edge2));
+        glNormal3f(normal.x, normal.y, normal.z);
+        glVertex3f(v1.x, v1.y, v1.z);
+        glVertex3f(v2.x, v2.y, v2.z);
+        glVertex3f(v3.x, v3.y, v3.z);
+    }
+    glEnd();
+    glPopMatrix();
+    
+    // Restaurar os atributos de iluminacao anteriores
+    glPopAttrib();
+}
+
+void DesenhaTendaRetangular(float width, float depth, float height, Color mainColor, Color roofColor) {
+    glPushAttrib(GL_LIGHTING_BIT);
+    
+    float half_width = width / 2.0f;
+    float half_depth = depth / 2.0f;
+
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 50.0 };
+    glPushMatrix();
+    glColor3f(mainColor.r, mainColor.g, mainColor.b);
+    glBegin(GL_QUADS);
+        // Frente
+        glNormal3f(0, 1, 0);
+        glVertex3f(-half_width, half_depth, 0); glVertex3f(half_width, half_depth, 0);
+        glVertex3f(half_width, half_depth, height); glVertex3f(-half_width, half_depth, height);
+        // Tras
+        glNormal3f(0, -1, 0);
+        glVertex3f(-half_width, -half_depth, 0); glVertex3f(-half_width, -half_depth, height);
+        glVertex3f(half_width, -half_depth, height); glVertex3f(half_width, -half_depth, 0);
+        // Esquerda
+        glNormal3f(-1, 0, 0);
+        glVertex3f(-half_width, -half_depth, 0); glVertex3f(-half_width, half_depth, 0);
+        glVertex3f(-half_width, half_depth, height); glVertex3f(-half_width, -half_depth, height);
+        // Direita
+        glNormal3f(1, 0, 0);
+        glVertex3f(half_width, -half_depth, 0); glVertex3f(half_width, -half_depth, height);
+        glVertex3f(half_width, half_depth, height); glVertex3f(half_width, half_depth, 0);
+    glEnd();
+
+    // Deixar o topo da tenda brilhoso, para parecer que a luz bate nele
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glColor3f(roofColor.r, roofColor.g, roofColor.b);
+    glBegin(GL_QUADS);
+        glNormal3f(0, 0, 1);
+        glVertex3f(-half_width, -half_depth, height); glVertex3f(-half_width, half_depth, height);
+        glVertex3f(half_width, half_depth, height); glVertex3f(half_width, -half_depth, height);
+    glEnd();
+    glPopMatrix();
+    
+    glPopAttrib();
+}
+
+
+void DesenhaTendaQuadrada(float size, float height, Color wallColor, Color roofColor1, Color roofColor2) {
+    glPushAttrib(GL_LIGHTING_BIT);
+
+    float half_size = size / 2.0f;
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 50.0 };
+    glPushMatrix();
+    glColor3f(wallColor.r, wallColor.g, wallColor.b);
+    glBegin(GL_QUADS);
+        // Frente
+        glNormal3f(0, 1, 0);
+        glVertex3f(-half_size, half_size, 0); glVertex3f(half_size, half_size, 0);
+        glVertex3f(half_size, half_size, height); glVertex3f(-half_size, half_size, height);
+        // Tras
+        glNormal3f(0, -1, 0);
+        glVertex3f(-half_size, -half_size, 0); glVertex3f(-half_size, -half_size, height);
+        glVertex3f(half_size, -half_size, height); glVertex3f(half_size, -half_size, 0);
+        // Esquerda
+        glNormal3f(-1, 0, 0);
+        glVertex3f(-half_size, -half_size, 0); glVertex3f(-half_size, half_size, 0);
+        glVertex3f(-half_size, half_size, height); glVertex3f(-half_size, -half_size, height);
+        // Direita
+        glNormal3f(1, 0, 0);
+        glVertex3f(half_size, -half_size, 0); glVertex3f(half_size, -half_size, height);
+        glVertex3f(half_size, half_size, height); glVertex3f(half_size, half_size, 0);
+    glEnd();
+
+    // Deixar o topo da tenda brilhoso, para parecer que a luz bate nele
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glBegin(GL_TRIANGLES);
+        // Face da frente do telhado
+        glColor3f(roofColor1.r, roofColor1.g, roofColor1.b);
+        glNormal3f(0, 0.707, 0.707);
+        glVertex3f(0, 0, height + half_size);
+        glVertex3f(-half_size, half_size, height);
+        glVertex3f(half_size, half_size, height);
+        // Face de tras do telhado
+        glColor3f(roofColor2.r, roofColor2.g, roofColor2.b);
+        glNormal3f(0, -0.707, 0.707);
+        glVertex3f(0, 0, height + half_size);
+        glVertex3f(half_size, -half_size, height);
+        glVertex3f(-half_size, -half_size, height);
+        // Face esquerda do telhado
+        glColor3f(roofColor1.r, roofColor1.g, roofColor1.b);
+        glNormal3f(-0.707, 0, 0.707);
+        glVertex3f(0, 0, height + half_size);
+        glVertex3f(-half_size, -half_size, height);
+        glVertex3f(-half_size, half_size, height);
+        // Face direita do telhado
+        glColor3f(roofColor2.r, roofColor2.g, roofColor2.b);
+        glNormal3f(0.707, 0, 0.707);
+        glVertex3f(0, 0, height + half_size);
+        glVertex3f(half_size, half_size, height);
+        glVertex3f(half_size, -half_size, height);
+    glEnd();
+    glPopMatrix();
+    
+    glPopAttrib();
+}
+
+void DesenhaPessoa(Color clothingColor) {
+    glPushMatrix();
+    // Corpo (cone)
+    glColor3f(clothingColor.r, clothingColor.g, clothingColor.b);
+    glutSolidCone(1.7, 5.0, 15, 15);
+    // Cabeça (esfera)
+    glTranslatef(0, 0, 5.0);
+    glColor3f(1.0f, 0.8f, 0.6f); // Pele
+    glutSolidSphere(1.3, 15, 15);
+    glPopMatrix();
+}
+
+void DesenhaPalhaco(Color clothingColor, Color balloonColor) {
+    glPushMatrix(); // Salvar a posicao do palhaco na cena
+    
+    // Desenhar a pessoa
+    DesenhaPessoa(clothingColor);
+
+    // Desenhar o chapeu
+    glPushMatrix();
+        glColor3f(1.0f, 0.0f, 1.0f);
+        glTranslatef(0, 0, 6.3); // No topo da cabeca
+        glutSolidCone(0.7, 2.5, 10, 1);
+    glPopMatrix(); 
+
+    // Desenhar o balao
+    glPushMatrix();
+        glBegin(GL_LINES);
+            glColor3f(0.1f, 0.1f, 0.1f); // Linha preta
+            glVertex3f(1.5, 0.0, 3.0);   // Comecar da mao
+            glVertex3f(2.5, 0.0, 10.0);  // Ir para cima e um pouco a direita
+        glEnd();
+        glTranslatef(2.5, 0.0, 10.0); // Mover para o final da linha
+        glColor3f(balloonColor.r, balloonColor.g, balloonColor.b);
+        glutSolidSphere(1.8, 15, 15);
+    glPopMatrix();
+
+    glPopMatrix();
+}
+
+void DesenhaCenario() {
+    // ARVORES
+    glPushMatrix();
+        glTranslatef(0, 250, 0);
+        glScalef(1.5, 1.5, 1.5);
+        DesenhaArvore();
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(200, 150, 0);
+        DesenhaArvore();
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-220, 150, 0);
+        glScalef(1.2, 1.2, 1.2);
+        DesenhaArvore();
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-240, -150, 0);
+        DesenhaArvore();
+    glPopMatrix();
+
+    // PESSOAS E TENDAS
+    // TENDA PRINCIPAL
+    glPushMatrix();
+        glTranslatef(0, 0, 0);
+        DesenhaTendaCone(40, 50, {1.0, 0.1, 0.1}, {1.0, 1.0, 1.0});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(0, -55, 0);
+        glRotatef(180, 0, 0, 1);
+        DesenhaPalhaco({0.1, 0.8, 0.8}, {1.0, 0.5, 0.0});
+    glPopMatrix();
+    // UM TANTAO DE GENTE
+    glPushMatrix();
+        glTranslatef(150, 50, 0);
+        glRotatef(30, 0, 0, 1);
+        DesenhaTendaCone(15, 20, {0.0, 0.5, 1.0}, {1.0, 1.0, 1.0});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-120, -100, 0);
+        DesenhaTendaQuadrada(25, 15, {1.0, 0.5, 0.0}, {1.0, 1.0, 1.0}, {1.0, 0.5, 0.0});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(80, -20, 0);
+        DesenhaPessoa({0.2, 0.8, 0.2});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(90, -25, 0);
+        glRotatef(-20, 0, 0, 1);
+        DesenhaPessoa({0.8, 0.2, 0.8});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-50, 70, 0);
+        DesenhaPalhaco({1.0, 1.0, 0.0}, {1.0, 0.0, 0.0});
+    glPopMatrix();
+    // OUTRO TANTAO DE GENTE E TENDAS
+    glPushMatrix();
+        glTranslatef(140, -150, 0);
+        DesenhaTendaQuadrada(30, 18, {0.2, 0.8, 0.8}, {1.0, 1.0, 1.0}, {0.2, 0.8, 0.8});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(165, -140, 0);
+        DesenhaPessoa({0.9, 0.1, 0.1});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(170, -145, 0);
+        glRotatef(45, 0, 0, 1);
+        DesenhaPessoa({0.1, 0.1, 0.9});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-160, 130, 0);
+        glRotatef(-45, 0, 0, 1);
+        DesenhaTendaCone(20, 25, {0.5, 0.0, 0.5}, {1.0, 1.0, 0.0});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-130, 150, 0);
+        DesenhaPalhaco({0.1, 0.9, 0.1}, {0.0, 0.5, 1.0});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(0, 200, 0);
+        glRotatef(10, 0, 0, 1);
+        DesenhaTendaRetangular(40, 20, 15, {0.4, 0.2, 0.0}, {0.8, 0.1, 0.1});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-5, 185, 0);
+        DesenhaPessoa({0.9, 0.9, 0.9});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-10, 180, 0);
+        DesenhaPessoa({0.1, 0.1, 0.1});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-15, 175, 0);
+        DesenhaPessoa({0.9, 0.5, 0.1});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-180, -50, 0);
+        DesenhaTendaCone(18, 22, {0.1, 0.8, 0.1}, {1.0, 1.0, 1.0});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-200, -60, 0);
+        glRotatef(90, 0, 0, 1);
+        DesenhaPalhaco({0.1, 0.1, 0.8}, {1.0, 1.0, 0.0});
+    glPopMatrix();
+    // OUTRO TANTAO DE GENTE E TENDAS
+    glPushMatrix();
+        glTranslatef(80, 220, 0);
+        DesenhaTendaQuadrada(20, 12, {0.9, 0.1, 0.5}, {1.0, 1.0, 1.0}, {0.9, 0.1, 0.5});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(75, 205, 0);
+        glRotatef(-90, 0, 0, 1);
+        DesenhaPessoa({0.3, 0.3, 0.3});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(85, 205, 0);
+        glRotatef(-90, 0, 0, 1);
+        DesenhaPessoa({0.8, 0.8, 0.2});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-200, 70, 0);
+        glRotatef(-30, 0, 0, 1);
+        DesenhaTendaRetangular(30, 15, 12, {0.1, 0.5, 0.1}, {0.1, 0.8, 0.1});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(-190, 85, 0);
+        DesenhaPessoa({0.5, 0.5, 0.5});
+    glPopMatrix();
+    // TANTAO DE GENTE E TENDAS FINAL
+    glPushMatrix();
+        glTranslatef(210, -50, 0);
+        glRotatef(-90, 0, 0, 1);
+        DesenhaTendaRetangular(35, 18, 14, {0.8, 0.8, 0.8}, {0.2, 0.2, 0.8});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(200, -40, 0);
+        DesenhaPessoa({0.9, 0.1, 0.1});
+    glPopMatrix();
+    glPushMatrix();
+        glTranslatef(200, -60, 0);
+        DesenhaPessoa({0.1, 0.1, 0.9});
+    glPopMatrix();
+     glPushMatrix();
+        glTranslatef(50, -100, 0);
+        DesenhaPalhaco({0.9, 0.2, 0.6}, {0.2, 0.9, 0.9});
+    glPopMatrix();
+
+    // Lampadas na entrada da tenda principal
+    DesenhaPosteDeLuz(-25, -45, 0, GL_LIGHT0);
+    DesenhaPosteDeLuz(25, -45, 0, GL_LIGHT2);
+
+    // Entre duas tendas
+    DesenhaPosteDeLuz(40, 210, 0, GL_LIGHT1);  
+
+    // Perto da laranjinha
+    DesenhaPosteDeLuz(-140, -120, 0, GL_LIGHT3); 
+
+    // Perto da azul no canto
+    DesenhaPosteDeLuz(170, 20, 0, GL_LIGHT4);
+    
+    // Entre duas tendas
+    DesenhaPosteDeLuz(-180, 100, 0, GL_LIGHT5); 
+}
+
+
 void DesenhaArvore(){
     float alturaCaule = 30;
     float raioEsferas = 7;
@@ -95,27 +486,27 @@ void DesenhaCilindroEntrePontos(Vector3 p1, Vector3 p2, double radius, int subdi
     Vector3 v = {p2.x - p1.x, p2.y - p1.y, p2.z - p1.z};
     double height = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
-    if (height < 0.0001) return; // Avoid drawing zero-length cylinders
+    if (height < 0.0001) return; // Nunca desenhar cilindros muito pequenos
 
     Vector3 z_axis = {0.0, 0.0, 1.0};
     Vector3 v_normalized = normalizar(v);
-
-    // Calculate the dot product to check for parallel/anti-parallel cases
+    
+    // Calcular o produto escalar para verificar casos de paralelismo/anti-paralelismo
     double dot_product = v_normalized.z;
     
     glPushMatrix();
         glTranslated(p1.x, p1.y, p1.z);
 
-        // If the cylinder is anti-parallel to the Z-axis (pointing straight down)
+        // Se for anti-paralelo ao eixo Z (apontando reto pra baixo)
         if (dot_product < -0.9999) {
-            // We need to flip it 180 degrees. We can rotate around any axis in the XY plane.
+            // Precisamos rotacionar 180 graus
             glRotated(180.0, 1.0, 0.0, 0.0);
         }
-        // If the cylinder is parallel to the Z-axis (pointing straight up)
+        // Se for paralelo ao eixo Z (apontando reto pra cima)
         else if (dot_product > 0.9999) {
-            // No rotation is needed.
+            // Nao precisamos fazer nada
         }
-        // The general case for all other orientations
+        // Caso geral para qualquer outra orientacao
         else {
             double angle = acos(dot_product) * 180.0 / M_PI;
             Vector3 axis = produtoVetorial(z_axis, v_normalized);

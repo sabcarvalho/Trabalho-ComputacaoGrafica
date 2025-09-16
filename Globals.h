@@ -5,6 +5,8 @@
 #include <vector>
 #include "VectorMath.h"
 
+struct Color { float r, g, b; };
+
 void EspecificaParametrosVisualizacao(void);
 
 // Camera and View settings
