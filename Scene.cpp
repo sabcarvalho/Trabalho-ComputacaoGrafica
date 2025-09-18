@@ -13,7 +13,7 @@ void DesenhaLua() {
     glColor3f(1.0f, 1.0f, 0.8f); // Uma cor bonitinha meio azul
 
     // Deixar a lua bem longe no ceu e bem grande
-    glTranslatef(200, 300, 300);
+    glTranslatef(300, 300, 300);
     glutSolidSphere(30, 20, 20);
 
     // Resetar a propriedade emissiva pra outros objetos nao brilharem
