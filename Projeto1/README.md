@@ -1,26 +1,9 @@
-Trabalho 1 - Computação Gráfica
+Montanha Russa
 
-Tópicos necessários:
-
-• Modelagem de objetos 3D usando primitivas
-
-• Transformações geométricas
-
-• Animações (controle do tempo)
-
-• Controle de mouse e teclado
-
-• Posicionamento da câmera e perspectiva
-
-• Iluminação
-
-• Uso de curvas paramétricas
-
-
-Ideia inicial:
-
-• Montanha-russa com animação dos carrinhos
-
-• Visão primeira e terceira pessoa
-
-• Aumentar ou diminuir velocidade da animação pelos botões do mouse
+- Setas movimentam a câmera
+- W: zoom in
+- S: zoom out
+- X: troca modo de câmera (primeira e terceira pessoa)
+- 0-9: define a quantidade de picos e vales da montanha
+- Clique direito: aumenta a velocidade do carrinho
+- Clique esquerdo: diminui a velocidade do carrinho
